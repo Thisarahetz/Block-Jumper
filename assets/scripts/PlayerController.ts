@@ -1,64 +1,123 @@
+// Import necessary components from Cocos Creator engine
 import { _decorator, Component, Vec3, EventMouse, input, Input } from "cc";
 const { ccclass, property } = _decorator;
 
+// Define the size of each block in the game (40 units)
 export const BLOCK_SIZE = 40;
 
+// Mark this class as a Cocos Creator component that can be attached to game objects
 @ccclass("PlayerController")
 export class PlayerController extends Component {
-  private _startJump: boolean = false;
-  private _jumpStep: number = 0;
-  private _curJumpTime: number = 0;
-  private _jumpTime: number = 0.3;
-  private _curJumpSpeed: number = 0;
-  private _curPos: Vec3 = new Vec3();
-  private _deltaPos: Vec3 = new Vec3(0, 0, 0);
-  private _targetPos: Vec3 = new Vec3();
+    // Flag to track if player is currently jumping
+    private _startJump: boolean = false;
+    
+    // Number of blocks to jump (1 or 2)
+    private _jumpStep: number = 0;
+    
+    // Current time elapsed during the jump
+    private _curJumpTime: number = 0;
+    
+    // Total time a jump should take (0.3 seconds)
+    private _jumpTime: number = 1;
+    
+    // Current speed of the jump (calculated based on distance and time)
+    private _curJumpSpeed: number = 0;
+    
+    // Vector to store current position of the player
+    private _curPos: Vec3 = new Vec3();
+    
+    // Vector to store position change for each frame
+    private _deltaPos: Vec3 = new Vec3(0, 0, 0);
+    
+    // Vector to store the target position after jump
+    private _targetPos: Vec3 = new Vec3();
 
-  start() {
-    input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
-  }
-
-  reset() {}
-
-  onMouseUp(event: EventMouse) {
-    if (event.getButton() === 0) {
-      this.jumpByStep(1);
-    } else if (event.getButton() === 2) {
-      this.jumpByStep(2);
+    // Called when the component is first created
+    start() {
+        // Set up listener for mouse click events
+        input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
     }
-  }
 
-  jumpByStep(step: number) {
-    if (this._startJump) {
-      return;
+    // Method to reset player state (currently empty, can be used for game restart)
+    reset() {}
+
+    // Called when player releases a mouse button
+    onMouseUp(event: EventMouse) {
+        // Left click (button 0) = jump 1 block
+        if (event.getButton() === 0) {
+            this.jumpByStep(1);
+        } 
+        // Right click (button 2) = jump 2 blocks
+        else if (event.getButton() === 2) {
+            this.jumpByStep(2);
+        }
     }
-    this._startJump = true;
-    this._jumpStep = step;
-    this._curJumpTime = 0;
 
-    this._curJumpSpeed = (this._jumpStep * BLOCK_SIZE) / this._jumpTime;
-    this.node.getPosition(this._curPos);
-    Vec3.add(
-      this._targetPos,
-      this._curPos,
-      new Vec3(this._jumpStep * BLOCK_SIZE, 0, 0)
-    );
-  }
+    // Initiates a jump movement
+    jumpByStep(step: number) {
+        // If already jumping, ignore new jump request
+        if (this._startJump) {
+            return;
+        }
 
-  update(deltaTime: number) {
-    if (this._startJump) {
-      this._curJumpTime += deltaTime;
-      if (this._curJumpTime > this._jumpTime) {
-        // end
-        this.node.setPosition(this._targetPos);
-        this._startJump = false;
-      } else {
-        // tween
+        // Start the jump
+        this._startJump = true;
+        // Set how many blocks to jump
+        this._jumpStep = step;
+        // Reset jump timer
+        this._curJumpTime = 0;
+
+        // Calculate jump speed: (distance to travel) / (time to take)
+        // Example: (1 block * 40 units) / 0.3 seconds = 133.33 units/second
+        this._curJumpSpeed = (this._jumpStep * BLOCK_SIZE) / this._jumpTime;
+
+        console.log("1"+this._curPos);
+        
+        // Get current position
         this.node.getPosition(this._curPos);
-        this._deltaPos.x = this._curJumpSpeed * deltaTime;
-        Vec3.add(this._curPos, this._curPos, this._deltaPos);
-        this.node.setPosition(this._curPos);
-      }
+
+        console.log("2"+this._curPos);
+        
+        // Calculate target position by adding jump distance to current position
+        // Example: current position + (1 block * 40 units) to the right
+        Vec3.add(
+            this._targetPos,
+            this._curPos,
+            new Vec3(this._jumpStep * BLOCK_SIZE, 0, 0)
+        );
     }
-  }
+
+    // Called every frame by Cocos Creator
+    update(deltaTime: number) {
+        // Only process movement if player is jumping
+        if (this._startJump) {
+            // Add time since last frame to jump timer
+            this._curJumpTime += deltaTime;
+
+            // Check if jump is complete
+            // Example: 0.3 seconds (jump time) > 0.0167 seconds (delta time)
+            if (this._curJumpTime > this._jumpTime) {
+                // Jump is done, set final position
+                this.node.setPosition(this._targetPos);
+                // Allow new jumps
+                this._startJump = false;
+            } 
+            
+            // else {
+            //     // Jump is in progress
+            //     // Get current position
+            //     this.node.getPosition(this._curPos);
+                
+            //     // Calculate how far to move this frame
+            //     // Example: 133.33 units/second * 0.0167 seconds = 2.22 units
+            //     this._deltaPos.x = this._curJumpSpeed * deltaTime;
+                
+            //     // Update position by adding movement
+            //     Vec3.add(this._curPos, this._curPos, this._deltaPos);
+                
+            //     // Apply new position to player
+            //     this.node.setPosition(this._curPos);
+            // }
+        }
+    }
 }
