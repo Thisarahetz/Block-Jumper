@@ -1,5 +1,5 @@
 // Import necessary components from Cocos Creator engine
-import { _decorator, Component, Vec3, EventMouse, input, Input } from "cc";
+import { _decorator, Component, Vec3, EventMouse, input, Input, Animation } from "cc";
 const { ccclass, property } = _decorator;
 
 // Define the size of each block in the game (40 units)
@@ -10,27 +10,30 @@ export const BLOCK_SIZE = 40;
 export class PlayerController extends Component {
     // Flag to track if player is currently jumping
     private _startJump: boolean = false;
-    
+
     // Number of blocks to jump (1 or 2)
     private _jumpStep: number = 0;
-    
+
     // Current time elapsed during the jump
     private _curJumpTime: number = 0;
-    
+
     // Total time a jump should take (0.3 seconds)
-    private _jumpTime: number = 1;
-    
+    private _jumpTime: number = 0.6;
+
     // Current speed of the jump (calculated based on distance and time)
     private _curJumpSpeed: number = 0;
-    
+
     // Vector to store current position of the player
     private _curPos: Vec3 = new Vec3();
-    
+
     // Vector to store position change for each frame
     private _deltaPos: Vec3 = new Vec3(0, 0, 0);
-    
+
     // Vector to store the target position after jump
     private _targetPos: Vec3 = new Vec3();
+
+    @property(Animation)
+    BodyAnim: Animation = null;
 
     // Called when the component is first created
     start() {
@@ -39,14 +42,14 @@ export class PlayerController extends Component {
     }
 
     // Method to reset player state (currently empty, can be used for game restart)
-    reset() {}
+    reset() { }
 
     // Called when player releases a mouse button
     onMouseUp(event: EventMouse) {
         // Left click (button 0) = jump 1 block
         if (event.getButton() === 0) {
             this.jumpByStep(1);
-        } 
+        }
         // Right click (button 2) = jump 2 blocks
         else if (event.getButton() === 2) {
             this.jumpByStep(2);
@@ -71,13 +74,9 @@ export class PlayerController extends Component {
         // Example: (1 block * 40 units) / 0.3 seconds = 133.33 units/second
         this._curJumpSpeed = (this._jumpStep * BLOCK_SIZE) / this._jumpTime;
 
-        console.log("1"+this._curPos);
-        
         // Get current position
         this.node.getPosition(this._curPos);
 
-        console.log("2"+this._curPos);
-        
         // Calculate target position by adding jump distance to current position
         // Example: current position + (1 block * 40 units) to the right
         Vec3.add(
@@ -85,6 +84,19 @@ export class PlayerController extends Component {
             this._curPos,
             new Vec3(this._jumpStep * BLOCK_SIZE, 0, 0)
         );
+
+        //the code can explain itself
+        if (this.BodyAnim) {
+            if (step === 1) {
+                this.BodyAnim.play('oneStep');
+            } else if (step === 2) {
+                this.BodyAnim.play('twoStep');
+            }
+        }
+
+        const clipName = step == 1 ? 'oneStep' : 'twoStep';
+        const state = this.BodyAnim.getState(clipName);
+        this._jumpTime = state.duration;
     }
 
     // Called every frame by Cocos Creator
@@ -101,23 +113,23 @@ export class PlayerController extends Component {
                 this.node.setPosition(this._targetPos);
                 // Allow new jumps
                 this._startJump = false;
-            } 
-            
-            // else {
-            //     // Jump is in progress
-            //     // Get current position
-            //     this.node.getPosition(this._curPos);
-                
-            //     // Calculate how far to move this frame
-            //     // Example: 133.33 units/second * 0.0167 seconds = 2.22 units
-            //     this._deltaPos.x = this._curJumpSpeed * deltaTime;
-                
-            //     // Update position by adding movement
-            //     Vec3.add(this._curPos, this._curPos, this._deltaPos);
-                
-            //     // Apply new position to player
-            //     this.node.setPosition(this._curPos);
-            // }
+            }
+
+            else {
+                // Jump is in progress
+                // Get current position
+                this.node.getPosition(this._curPos);
+
+                // Calculate how far to move this frame
+                // Example: 133.33 units/second * 0.0167 seconds = 2.22 units
+                this._deltaPos.x = this._curJumpSpeed * deltaTime;
+
+                // Update position by adding movement
+                Vec3.add(this._curPos, this._curPos, this._deltaPos);
+
+                // Apply new position to player
+                this.node.setPosition(this._curPos);
+            }
         }
     }
 }
