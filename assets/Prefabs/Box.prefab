@@ -85,7 +85,7 @@
   },
   {
     "__type__": "cc.CompPrefabInfo",
-    "fileId": "9aSPdKaBpOgalFkXCxzrzm"
+    "fileId": "47woJhbqBC/5E/hQPweHMi"
   },
   {
     "__type__": "cc.Sprite",
@@ -130,7 +130,7 @@
   },
   {
     "__type__": "cc.CompPrefabInfo",
-    "fileId": "b5IpfLrH1PUKUrWXANcsLk"
+    "fileId": "32eSXIMMFAgYgKIIpm0rme"
   },
   {
     "__type__": "cc.PrefabInfo",
@@ -140,7 +140,8 @@
     "asset": {
       "__id__": 0
     },
-    "fileId": "b6rKNpbUVFYavIIFyzNS4J",
+    "fileId": "31ehaTFAlAuJhvZW9gZOC+",
+    "instance": null,
     "targetOverrides": null
   }
 ]
