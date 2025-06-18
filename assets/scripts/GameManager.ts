@@ -1,5 +1,5 @@
-import { _decorator, CCInteger, Component, instantiate, Node, Prefab } from 'cc';
-import { BLOCK_SIZE } from './PlayerController';
+import { _decorator, CCInteger, Component, instantiate, Label, Node, Prefab, Vec3 } from 'cc';
+import { BLOCK_SIZE, PlayerController } from './PlayerController';
 const { ccclass, property } = _decorator;
 
 // Types of blocks in our game
@@ -10,8 +10,28 @@ enum BlockType{
     BT_STONE,   // 1 = stone block
 };
 
+
+enum GameState{
+    GS_INIT,
+    GS_PLAYING,
+    GS_END,
+};
+
+
 @ccclass('GameManager')
 export class GameManager extends Component {
+
+    // References to the startMenu node.
+@property({ type: Node })
+public startMenu: Node | null = null;
+
+//references to player
+@property({ type: PlayerController }) 
+public playerCtrl: PlayerController | null = null;
+
+//references to UICanvas/Steps node.
+@property({type: Label}) 
+public stepsLabel: Label|null = null;
     
     // This is the box prefab we'll use to create stone blocks
     // You need to drag a prefab here in the editor
@@ -93,8 +113,60 @@ export class GameManager extends Component {
     // This runs when the game starts
     start() {
         // Generate our road when the game begins
+        this.setCurState(GameState.GS_INIT);
+       
+    }
+
+    onStartButtonClicked() {
+        this.setCurState(GameState.GS_PLAYING);
+    }
+
+    init() {
+        //show the start menu
+        if (this.startMenu) {
+            this.startMenu.active = true;
+        }
+    
+        //generate the map
         this.generateRoad();
-        this.generateRoad();
+    
+    
+        if (this.playerCtrl) {
+    
+            //disable input
+            this.playerCtrl.setInputActive(false);
+    
+            //reset player data.
+            this.playerCtrl.node.setPosition(Vec3.ZERO);
+            this.playerCtrl.reset();
+        }
+    }
+
+    setCurState(value: GameState) {
+        switch (value) {
+            case GameState.GS_INIT:
+                this.init();
+                break;
+            //when the game is playing
+            case GameState.GS_PLAYING:
+                if (this.startMenu) {
+                    this.startMenu.active = false;
+                }
+    
+                //reset steps counter to 0
+                if (this.stepsLabel) {
+                    this.stepsLabel.string = '0';
+                }
+    
+                //enable user input after 0.1 second.
+                setTimeout(() => {
+                    if (this.playerCtrl) {
+                        this.playerCtrl.setInputActive(true);
+                    }
+                }, 0.1);
+                break;
+           
+        }
     }
 }
 

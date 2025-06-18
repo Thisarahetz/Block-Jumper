@@ -99,6 +99,18 @@ export class PlayerController extends Component {
         this._jumpTime = state.duration;
     }
 
+    //set the input active or not
+    //this is used to disable the input when the game is not playing
+    setInputActive(active: boolean) {
+        if (active) {
+            //enable input
+            input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+        } else {
+            //disable input
+            input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+        }
+    }
+
     // Called every frame by Cocos Creator
     update(deltaTime: number) {
         // Only process movement if player is jumping
