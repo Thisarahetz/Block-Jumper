@@ -1,173 +1,158 @@
+// GameManager.ts
+// This script manages the main game logic for a simple step-based game in Cocos Creator.
+// It handles road generation, player state, UI updates, and game state transitions.
+// Example usage is provided at the end of the file.
+
 import { _decorator, CCInteger, Component, instantiate, Label, Node, Prefab, Vec3 } from 'cc';
 import { BLOCK_SIZE, PlayerController } from './PlayerController';
 const { ccclass, property } = _decorator;
 
-// Types of blocks in our game
-// BT_NONE = 0 (empty space, no block)
-// BT_STONE = 1 (stone block that player can stand on)
-enum BlockType{
-    BT_NONE,    // 0 = empty space
-    BT_STONE,   // 1 = stone block
+// Enum for block types on the road
+// BT_NONE: empty space, BT_STONE: a stone block the player can step on
+enum BlockType {
+    BT_NONE,
+    BT_STONE,
 };
 
-
-enum GameState{
+// Enum for game states
+// GS_INIT: before game starts, GS_PLAYING: game in progress, GS_END: game over
+enum GameState {
     GS_INIT,
     GS_PLAYING,
     GS_END,
 };
 
-
 @ccclass('GameManager')
 export class GameManager extends Component {
-
-    // References to the startMenu node.
-@property({ type: Node })
-public startMenu: Node | null = null;
-
-//references to player
-@property({ type: PlayerController }) 
-public playerCtrl: PlayerController | null = null;
-
-//references to UICanvas/Steps node.
-@property({type: Label}) 
-public stepsLabel: Label|null = null;
-    
-    // This is the box prefab we'll use to create stone blocks
-    // You need to drag a prefab here in the editor
-    @property({type: Prefab})
-    public boxPrefab: Prefab|null = null;
-
-    // How many blocks long our road will be
-    // Example: roadLength = 50 means 50 blocks total
-    @property({type: CCInteger})
+    // Prefab for the stone block
+    @property({ type: Prefab })
+    public boxPrefab: Prefab | null = null;
+    // Number of blocks in the road
+    @property({ type: CCInteger })
     public roadLength: number = 50;
-
-    // This array stores our road layout
-    // Example: [1, 0, 1, 1, 0] means: stone, empty, stone, stone, empty
+    // Array to store the generated road
     private _road: BlockType[] = [];
 
-    // This function creates the road
-    generateRoad() {
+    // Reference to the start menu UI node
+    @property({ type: Node })
+    public startMenu: Node | null = null;
+    // Reference to the player controller
+    @property({ type: PlayerController })
+    public playerCtrl: PlayerController | null = null;
+    // Reference to the label showing steps
+    @property({type: Label})
+    public stepsLabel: Label|null = null;
 
-        // Remove all existing blocks first
-        this.node.removeAllChildren();
-    
-        // Clear our road array
-        this._road = [];
-        
-        // Always start with a stone block (so player has somewhere to stand)
-        this._road.push(BlockType.BT_STONE); // Add 1 (stone) to array
-    
-        // Create the rest of the road
-        for (let i = 1; i < this.roadLength; i++) {
-            // If the previous block was empty (0), we MUST put a stone (1) here
-            // This prevents the player from falling into a hole
-            if (this._road[i - 1] === BlockType.BT_NONE) {
-                this._road.push(1); // Force stone block
-            } else {
-                // Randomly choose: 0 (empty) or 1 (stone)
-                // Math.random() gives 0-1, Math.floor makes it 0 or 1
-                this._road.push(Math.floor(Math.random() * 2));
-            }
-        }
-        
-        // Now create the visual blocks in the game
-        for (let j = 0; j < this._road.length; j++) {
-            // Get the block type at position j
-            let block: Node | null = this.spawnBlockByType(this._road[j]);
-            if (block) {
-                // Add the block to our scene
-                // why is this here? answer: 
-                // because we want to add the block to the game manager node
-                this.node.addChild(block);
-                // Position it: j * 40 units to the right
-                // Example: block 0 at x=0, block 1 at x=40, block 2 at x=80
-                block.setPosition(j * BLOCK_SIZE, 0, 0);
-            }
-
-            
-        }
-    }
-
-    // This function creates a block based on its type
-    spawnBlockByType(type: BlockType) {
-        // Check if we have a prefab to use
-        if (!this.boxPrefab) {
-            return null; // No prefab = no block created
-        }
-    
-        let block: Node|null = null;
-
-        switch(type) {
-            case BlockType.BT_STONE: // If type is 1 (stone)
-                // Create a new block from our prefab
-                block = instantiate(this.boxPrefab);
-                break;
-            // For BT_NONE (0), we don't create any block (empty space)
-        }
-    
-        return block;
-    }
-
-    // This runs when the game starts
+    // Called when the component is first enabled
     start() {
-        // Generate our road when the game begins
         this.setCurState(GameState.GS_INIT);
-       
+        // Listen for the player's jump end event
+        this.playerCtrl?.node.on('JumpEnd', this.onPlayerJumpEnd, this);
     }
 
-    onStartButtonClicked() {
-        this.setCurState(GameState.GS_PLAYING);
-    }
-
+    // Initialize the game state and UI
     init() {
-        //show the start menu
         if (this.startMenu) {
             this.startMenu.active = true;
         }
-    
-        //generate the map
         this.generateRoad();
-    
-    
         if (this.playerCtrl) {
-    
-            //disable input
             this.playerCtrl.setInputActive(false);
-    
-            //reset player data.
             this.playerCtrl.node.setPosition(Vec3.ZERO);
             this.playerCtrl.reset();
         }
     }
 
+    // Set the current game state and update UI/logic accordingly
     setCurState(value: GameState) {
         switch (value) {
             case GameState.GS_INIT:
                 this.init();
                 break;
-            //when the game is playing
             case GameState.GS_PLAYING:
                 if (this.startMenu) {
                     this.startMenu.active = false;
                 }
-    
-                //reset steps counter to 0
                 if (this.stepsLabel) {
                     this.stepsLabel.string = '0';
                 }
-    
-                //enable user input after 0.1 second.
+                // Enable player input after a short delay
                 setTimeout(() => {
                     if (this.playerCtrl) {
                         this.playerCtrl.setInputActive(true);
                     }
                 }, 0.1);
                 break;
-           
+            case GameState.GS_END:
+                // Game end logic can be added here
+                break;
         }
     }
+
+    // Generate the road with random blocks
+    generateRoad() {
+        this.node.removeAllChildren();
+        this._road = [];
+        // Start position always has a stone block
+        this._road.push(BlockType.BT_STONE);
+        for (let i = 1; i < this.roadLength; i++) {
+            if (this._road[i - 1] === BlockType.BT_NONE) {
+                this._road.push(BlockType.BT_STONE);
+            } else {
+                this._road.push(Math.floor(Math.random() * 2));
+            }
+        }
+        // Instantiate and position blocks
+        for (let j = 0; j < this._road.length; j++) {
+            let block: Node | null = this.spawnBlockByType(this._road[j]);
+            if (block) {
+                this.node.addChild(block);
+                block.setPosition(j * BLOCK_SIZE, 0, 0);
+            }
+        }
+    }
+
+    // Instantiate a block node based on its type
+    spawnBlockByType(type: BlockType) {
+        if (!this.boxPrefab) {
+            return null;
+        }
+        let block: Node | null = null;
+        switch (type) {
+            case BlockType.BT_STONE:
+                block = instantiate(this.boxPrefab);
+                break;
+        }
+        return block;
+    }
+
+    // Called when the start button is clicked
+    onStartButtonClicked() {
+        this.setCurState(GameState.GS_PLAYING);
+    }
+
+    // Check if the player's move is valid or if the game should reset
+    checkResult(moveIndex: number) {
+        if (moveIndex < this.roadLength) {
+            if (this._road[moveIndex] == BlockType.BT_NONE) {
+                this.setCurState(GameState.GS_INIT);
+            }
+        } else { 
+            this.setCurState(GameState.GS_INIT);
+        }
+    }
+
+    // Called when the player finishes a jump
+    onPlayerJumpEnd(moveIndex: number) {
+        if (this.stepsLabel) {
+            this.stepsLabel.string = '' + (moveIndex >= this.roadLength ? this.roadLength : moveIndex);
+        }
+        this.checkResult(moveIndex);
+    }
+
 }
 
-
+// Example usage:
+// Attach GameManager to a Node in your scene.
+// Assign the boxPrefab, startMenu, playerCtrl, and stepsLabel properties in the Cocos Creator editor.
+// Call onStartButtonClicked() when the player presses the start button to begin the game.
