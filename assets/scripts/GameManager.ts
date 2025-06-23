@@ -144,6 +144,7 @@ export class GameManager extends Component {
 
     // Called when the player finishes a jump
     onPlayerJumpEnd(moveIndex: number) {
+        console.log('onPlayerJumpEnd', moveIndex);
         if (this.stepsLabel) {
             this.stepsLabel.string = '' + (moveIndex >= this.roadLength ? this.roadLength : moveIndex);
         }

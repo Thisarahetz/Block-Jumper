@@ -1,4 +1,4 @@
-import { _decorator, Component, Vec3, EventMouse, input, Input, Animation } from "cc";
+import { _decorator, Component, Vec3, EventMouse, input, Input, Animation,Node, EventTouch } from "cc";
 const { ccclass, property } = _decorator;
 
 // The size of each block the player can jump to
@@ -10,6 +10,16 @@ export class PlayerController extends Component {
     // Reference to the Animation component for the player's body
     @property(Animation)
     BodyAnim:Animation = null;
+
+    @property({
+        type: Node
+    })
+    leftTouch: Node = null;
+
+    @property({
+        type: Node
+    })
+    rightTouch: Node = null;
 
     // Indicates if the player is currently jumping
     private _startJump: boolean = false;
@@ -32,8 +42,9 @@ export class PlayerController extends Component {
 
     start () {
         // Optionally, you could enable input here
-        //input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+        input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
     }
+    
 
     /**
      * Enable or disable mouse input for jumping.
@@ -41,11 +52,29 @@ export class PlayerController extends Component {
      * Example:
      *   setInputActive(true); // enables mouse input
      */
+
     setInputActive(active: boolean) {
         if (active) {
+            //for pc
             input.on(Input.EventType.MOUSE_UP, this.onMouseUp, this);
-        } else {
+            //for mobile
+            this.leftTouch.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
+            this.rightTouch.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        } else { 
+            //for pc
             input.off(Input.EventType.MOUSE_UP, this.onMouseUp, this);
+            //for mobile
+            this.leftTouch.off(Input.EventType.TOUCH_START, this.onTouchStart, this);
+            this.rightTouch.off(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        }
+    }
+
+    onTouchStart(event: EventTouch) {
+        const target = event.target as Node;    
+        if (target?.name == 'LeftTouch') {
+            this.jumpByStep(1);
+        } else {
+            this.jumpByStep(2);
         }
     }
 
